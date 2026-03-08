@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # نصب dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # کپی کردن کد اپلیکیشن
 COPY . .
