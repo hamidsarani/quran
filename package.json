@@ -1,0 +1,27 @@
+{
+  "name": "quran-khatm-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for group Quran completion",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "docker:build": "docker build -t quran-bot .",
+    "docker:run": "docker run -d --name quran-bot-container quran-bot",
+    "docker:compose": "docker-compose up -d",
+    "docker:logs": "docker-compose logs -f quran_bot",
+    "docker:stop": "docker-compose down",
+    "migrate": "node scripts/migrate.js"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "axios": "^1.6.0",
+    "sequelize": "^6.35.0",
+    "pg": "^8.11.0",
+    "pg-hstore": "^2.3.4",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
