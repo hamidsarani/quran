@@ -5,10 +5,10 @@ FROM node:18-alpine
 WORKDIR /app
 
 # کپی کردن package files
-COPY package.json yarn.lock ./
+COPY package.json ./
 
 # نصب dependencies با yarn
-RUN yarn install --frozen-lockfile --production
+RUN yarn install --production
 
 # کپی کردن کد اپلیکیشن
 COPY . .
