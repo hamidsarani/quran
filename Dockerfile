@@ -5,10 +5,10 @@ FROM node:18-alpine
 WORKDIR /app
 
 # کپی کردن package files
-COPY package*.json ./
+COPY package.json yarn.lock ./
 
-# نصب dependencies
-RUN npm i
+# نصب dependencies با yarn
+RUN yarn install --frozen-lockfile --production
 
 # کپی کردن کد اپلیکیشن
 COPY . .
@@ -21,11 +21,8 @@ RUN adduser -S nodejs -u 1001
 RUN chown -R nodejs:nodejs /app
 USER nodejs
 
-# expose port (اختیاری - برای monitoring)
 EXPOSE 3000
 
-# تنظیم environment
 ENV NODE_ENV=production
 
-# اجرای اپلیکیشن
-CMD ["npm", "start"]
+CMD ["yarn", "start"]
