@@ -6,6 +6,11 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "build": "pkg . --targets node18-linux-x64,node18-win-x64 --output dist/quran-bot",
+    "build:linux": "pkg . --targets node18-linux-x64 --output dist/quran-bot-linux",
+    "build:win": "pkg . --targets node18-win-x64 --output dist/quran-bot-win.exe",
+    "build:macos": "pkg . --targets node18-macos-x64 --output dist/quran-bot-macos",
+    "download-quran": "node scripts/download-quran.js",
     "docker:build": "docker build -t quran-bot .",
     "docker:run": "docker run -d --name quran-bot-container quran-bot",
     "docker:compose": "docker-compose up -d",
@@ -13,15 +18,24 @@
     "docker:stop": "docker-compose down",
     "migrate": "node scripts/migrate.js"
   },
+  "bin": "index.js",
+  "pkg": {
+    "assets": [
+      "node_modules/**/*",
+      "data/**/*"
+    ],
+    "outputPath": "dist"
+  },
   "dependencies": {
-    "node-telegram-bot-api": "^0.66.0",
     "axios": "^1.6.0",
-    "sequelize": "^6.35.0",
+    "dotenv": "^16.3.1",
+    "node-telegram-bot-api": "^0.66.0",
     "pg": "^8.11.0",
     "pg-hstore": "^2.3.4",
-    "dotenv": "^16.3.1"
+    "sequelize": "^6.35.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "pkg": "^5.8.1"
   }
 }
