@@ -3,9 +3,9 @@ const config = require('../config/config');
 
 class CampaignRepository {
   // ایجاد کمپین جدید
-  async createCampaign(name, callback) {
+  async createCampaign(name, type = 'zaerin', callback) {
     try {
-      const campaign = await Campaign.create({ name });
+      const campaign = await Campaign.create({ name, type });
       const campaignId = campaign.id;
       
       // ایجاد 302 جفت صفحه (604 صفحه به صورت 2 تایی)
@@ -13,9 +13,9 @@ class CampaignRepository {
       for (let i = 1; i <= config.quran.totalPages; i += config.quran.pagesPerPair) {
         const pageEnd = Math.min(i + 1, config.quran.totalPages);
         pages.push({
-          campaign_id: campaignId,
-          page_start: i,
-          page_end: pageEnd
+          campaignId: campaignId,
+          pageStart: i,
+          pageEnd: pageEnd
         });
       }
       
@@ -34,17 +34,17 @@ class CampaignRepository {
   async getActiveCampaigns(callback) {
     try {
       const campaigns = await Campaign.findAll({
-        where: { is_active: true },
-        order: [['created_at', 'DESC']],
-        raw: true
+        where: { isActive: true },
+        order: [['created_at', 'DESC']]
       });
       
       const result = campaigns.map(c => ({
         id: c.id,
         name: c.name,
-        created_at: c.created_at,
-        is_active: c.is_active,
-        is_completed: c.is_completed
+        type: c.type,
+        created_at: c.createdAt,
+        is_active: c.isActive,
+        is_completed: c.isCompleted
       }));
       
       if (callback) callback(null, result);
@@ -60,16 +60,16 @@ class CampaignRepository {
   async getAllCampaigns(callback) {
     try {
       const campaigns = await Campaign.findAll({
-        order: [['created_at', 'DESC']],
-        raw: true
+        order: [['created_at', 'DESC']]
       });
       
       const result = campaigns.map(c => ({
         id: c.id,
         name: c.name,
-        created_at: c.created_at,
-        is_active: c.is_active,
-        is_completed: c.is_completed
+        type: c.type,
+        created_at: c.createdAt,
+        is_active: c.isActive,
+        is_completed: c.isCompleted
       }));
       
       if (callback) callback(null, result);
@@ -84,14 +84,15 @@ class CampaignRepository {
   // دریافت یک کمپین
   async getCampaignById(campaignId, callback) {
     try {
-      const campaign = await Campaign.findByPk(campaignId, { raw: true });
+      const campaign = await Campaign.findByPk(campaignId);
       
       const result = campaign ? {
         id: campaign.id,
         name: campaign.name,
-        created_at: campaign.created_at,
-        is_active: campaign.is_active,
-        is_completed: campaign.is_completed
+        type: campaign.type,
+        created_at: campaign.createdAt,
+        is_active: campaign.isActive,
+        is_completed: campaign.isCompleted
       } : null;
       
       if (callback) callback(null, result);
@@ -108,7 +109,7 @@ class CampaignRepository {
     try {
       const campaign = await Campaign.findByPk(campaignId);
       if (campaign) {
-        campaign.is_active = !campaign.is_active;
+        campaign.isActive = !campaign.isActive;
         await campaign.save();
       }
       
@@ -125,7 +126,7 @@ class CampaignRepository {
   async setCampaignCompleted(campaignId, isCompleted, callback) {
     try {
       await Campaign.update(
-        { is_completed: isCompleted },
+        { isCompleted: isCompleted },
         { where: { id: campaignId } }
       );
       
@@ -142,17 +143,17 @@ class CampaignRepository {
   async getCampaignStats(campaignId, callback) {
     try {
       const totalPages = await QuranPage.count({
-        where: { campaign_id: campaignId }
+        where: { campaignId: campaignId }
       });
       
       const completedPages = await QuranPage.count({
-        where: { campaign_id: campaignId, is_completed: true }
+        where: { campaignId: campaignId, isCompleted: true }
       });
       
       const activeUsers = await QuranPage.count({
-        where: { campaign_id: campaignId, reader_id: { [require('sequelize').Op.ne]: null } },
+        where: { campaignId: campaignId, readerId: { [require('sequelize').Op.ne]: null } },
         distinct: true,
-        col: 'reader_id'
+        col: 'readerId'
       });
       
       const stats = {

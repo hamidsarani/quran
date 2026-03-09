@@ -110,7 +110,7 @@ function showCampaignSummaryReport(bot, chatId, messageId, campaignId, db) {
       return;
     }
 
-    db.pages.getCompletedPages(campaignId, (err, pages) => {
+    db.pages.getCompletedPagesWithUserInfo(campaignId, (err, pages) => {
       if (err) {
         bot.sendMessage(chatId, 'خطا در دریافت گزارش');
         return;
@@ -127,24 +127,40 @@ function showCampaignSummaryReport(bot, chatId, messageId, campaignId, db) {
           if (!userPages[page.reader_id]) {
             userPages[page.reader_id] = {
               name: page.reader_name,
+              zaer_code: page.zaer_code,
               pages: []
             };
           }
           userPages[page.reader_id].pages.push(`${page.page_start}-${page.page_end}`);
         });
 
+        // تبدیل به آرایه و مرتب‌سازی بر اساس تعداد صفحات (از زیاد به کم)
+        const sortedUsers = Object.entries(userPages)
+          .map(([userId, userData]) => ({
+            userId,
+            name: userData.name,
+            zaer_code: userData.zaer_code,
+            pages: userData.pages,
+            pageCount: userData.pages.length * 2 // هر جفت = 2 صفحه
+          }))
+          .sort((a, b) => b.pageCount - a.pageCount);
+
         // نمایش هر کاربر
-        Object.keys(userPages).forEach((userId, index) => {
-          const userData = userPages[userId];
-          const userMention = createUserMention(userId, userData.name);
-          const pageCount = userData.pages.length * 2; // هر جفت = 2 صفحه
-          const pagesList = userData.pages.join(') (');
+        sortedUsers.forEach((user, index) => {
+          const userMention = createUserMention(user.userId, user.name);
+          const pagesList = user.pages.join(') (');
           
-          report += `${index + 1}. ${userMention} (${pageCount} صفحه)\n`;
+          report += `${index + 1}. ${userMention} (${user.pageCount} صفحه)\n`;
+          
+          // نمایش کد زائر اگر وجود داشته باشد
+          if (user.zaer_code) {
+            report += `   🕌 کد زائر: ${user.zaer_code}\n`;
+          }
+          
           report += `   (${pagesList})\n\n`;
         });
         
-        const totalUsers = Object.keys(userPages).length;
+        const totalUsers = sortedUsers.length;
         report += `━━━━━━━━━━━━━━━━\n`;
         report += `👥 تعداد کاربران: ${totalUsers}\n`;
         report += `✅ مجموع: ${pages.length} از 302 جفت صفحه`;

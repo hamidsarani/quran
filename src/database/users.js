@@ -51,27 +51,51 @@ class UserRepository {
     }
   }
 
+  // تنظیم کد زائر کاربر
+  async setUserZaerCode(userId, zaerCode, callback) {
+    try {
+      const [updatedRowsCount] = await User.update(
+        { zaerCode: zaerCode },
+        { where: { id: userId } }
+      );
+      if (callback) callback(null);
+      return updatedRowsCount > 0;
+    } catch (error) {
+      console.error('Error setting user zaer code:', error.message);
+      if (callback) callback(error);
+      throw error;
+    }
+  }
+
+  // دریافت کد زائر کاربر
+  async getUserZaerCode(userId, callback) {
+    try {
+      const user = await User.findByPk(userId, {
+        attributes: ['zaerCode']
+      });
+      const result = user ? { zaer_code: user.zaerCode } : null;
+      if (callback) callback(null, result);
+      return result;
+    } catch (error) {
+      console.error('Error getting user zaer code:', error.message);
+      if (callback) callback(error);
+      throw error;
+    }
+  }
+
   // دریافت لیست تمام کاربران با آمار
   async getAllUsers(callback) {
     try {
       const users = await User.findAll({
-        attributes: [
-          'id',
-          'username', 
-          ['first_name', 'firstName'],
-          ['last_name', 'lastName'],
-          ['joined_at', 'joinedAt']
-        ],
-        order: [['joined_at', 'DESC']],
-        raw: true
+        order: [['joined_at', 'DESC']]
       });
 
       // دریافت تعداد صفحات خوانده شده برای هر کاربر
       const usersWithStats = await Promise.all(users.map(async (user) => {
         const completedCount = await QuranPage.count({
           where: {
-            reader_id: user.id,
-            is_completed: true
+            readerId: user.id,
+            isCompleted: true
           }
         });
 
@@ -80,7 +104,7 @@ class UserRepository {
           username: user.username,
           first_name: user.firstName,
           last_name: user.lastName,
-          joined_at: user.joinedAt,
+          joined_at: user.createdAt, // joinedAt is mapped to createdAt in model
           completed_pages: completedCount
         };
       }));

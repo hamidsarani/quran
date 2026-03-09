@@ -22,6 +22,10 @@ module.exports = (sequelize) => {
     selectedCampaignId: {
       type: DataTypes.INTEGER,
       allowNull: true
+    },
+    zaerCode: {
+      type: DataTypes.STRING,
+      allowNull: true
     }
   }, {
     tableName: 'users',

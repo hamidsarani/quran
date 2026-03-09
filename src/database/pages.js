@@ -8,21 +8,20 @@ class PageRepository {
     try {
       const pages = await QuranPage.findAll({
         where: {
-          campaign_id: campaignId,
-          reader_id: null
+          campaignId: campaignId,
+          readerId: null
         },
         order: [['page_start', 'ASC']],
-        limit: 30,
-        raw: true
+        limit: 30
       });
       
       const result = pages.map(p => ({
         id: p.id,
-        campaign_id: p.campaign_id,
-        page_start: p.page_start,
-        page_end: p.page_end,
-        reader_id: p.reader_id,
-        reader_name: p.reader_name
+        campaign_id: p.campaignId,
+        page_start: p.pageStart,
+        page_end: p.pageEnd,
+        reader_id: p.readerId,
+        reader_name: p.readerName
       }));
       
       if (callback) callback(null, result);
@@ -39,14 +38,14 @@ class PageRepository {
     try {
       const [updatedRowsCount] = await QuranPage.update(
         {
-          reader_id: userId,
-          reader_name: userName,
-          assigned_at: new Date()
+          readerId: userId,
+          readerName: userName,
+          assignedAt: new Date()
         },
         {
           where: {
             id: pageId,
-            reader_id: null
+            readerId: null
           }
         }
       );
@@ -66,13 +65,13 @@ class PageRepository {
     try {
       const [updatedRowsCount] = await QuranPage.update(
         {
-          is_completed: true,
-          completed_at: new Date()
+          isCompleted: true,
+          completedAt: new Date()
         },
         {
           where: {
             id: pageId,
-            reader_id: userId
+            readerId: userId
           }
         }
       );
@@ -92,15 +91,15 @@ class PageRepository {
     try {
       const [updatedRowsCount] = await QuranPage.update(
         {
-          reader_id: null,
-          reader_name: null,
-          assigned_at: null
+          readerId: null,
+          readerName: null,
+          assignedAt: null
         },
         {
           where: {
             id: pageId,
-            reader_id: userId,
-            is_completed: false
+            readerId: userId,
+            isCompleted: false
           }
         }
       );
@@ -115,26 +114,64 @@ class PageRepository {
     }
   }
 
+  // دریافت صفحات تکمیل شده یک کمپین با اطلاعات کاربر
+  async getCompletedPagesWithUserInfo(campaignId, callback) {
+    try {
+      const { User } = require('../models');
+      
+      const pages = await QuranPage.findAll({
+        where: {
+          campaignId: campaignId,
+          isCompleted: true
+        },
+        include: [{
+          model: User,
+          as: 'reader',
+          attributes: ['id', 'username', 'firstName', 'lastName', 'zaerCode'],
+          required: false
+        }],
+        order: [['completed_at', 'DESC']]
+      });
+      
+      const result = pages.map(p => ({
+        id: p.id,
+        campaign_id: p.campaignId,
+        page_start: p.pageStart,
+        page_end: p.pageEnd,
+        reader_id: p.readerId,
+        reader_name: p.readerName,
+        completed_at: p.completedAt,
+        zaer_code: p.reader ? p.reader.zaerCode : null
+      }));
+      
+      if (callback) callback(null, result);
+      return result;
+    } catch (error) {
+      console.error('Error getting completed pages with user info:', error.message);
+      if (callback) callback(error);
+      throw error;
+    }
+  }
+
   // دریافت صفحات تکمیل شده یک کمپین
   async getCompletedPages(campaignId, callback) {
     try {
       const pages = await QuranPage.findAll({
         where: {
-          campaign_id: campaignId,
-          is_completed: true
+          campaignId: campaignId,
+          isCompleted: true
         },
-        order: [['completed_at', 'DESC']],
-        raw: true
+        order: [['completed_at', 'DESC']]
       });
       
       const result = pages.map(p => ({
         id: p.id,
-        campaign_id: p.campaign_id,
-        page_start: p.page_start,
-        page_end: p.page_end,
-        reader_id: p.reader_id,
-        reader_name: p.reader_name,
-        completed_at: p.completed_at
+        campaign_id: p.campaignId,
+        page_start: p.pageStart,
+        page_end: p.pageEnd,
+        reader_id: p.readerId,
+        reader_name: p.readerName,
+        completed_at: p.completedAt
       }));
       
       if (callback) callback(null, result);
@@ -151,21 +188,20 @@ class PageRepository {
     try {
       const page = await QuranPage.findOne({
         where: {
-          reader_id: userId,
-          campaign_id: campaignId,
-          is_completed: false
-        },
-        raw: true
+          readerId: userId,
+          campaignId: campaignId,
+          isCompleted: false
+        }
       });
       
       const result = page ? {
         id: page.id,
-        campaign_id: page.campaign_id,
-        page_start: page.page_start,
-        page_end: page.page_end,
-        reader_id: page.reader_id,
-        reader_name: page.reader_name,
-        assigned_at: page.assigned_at
+        campaign_id: page.campaignId,
+        page_start: page.pageStart,
+        page_end: page.pageEnd,
+        reader_id: page.readerId,
+        reader_name: page.readerName,
+        assigned_at: page.assignedAt
       } : null;
       
       if (callback) callback(null, result);
@@ -184,19 +220,18 @@ class PageRepository {
 
       const page = await QuranPage.findOne({
         where: {
-          campaign_id: campaignId,
-          page_start: pageStart,
-          page_end: pageEnd,
-          reader_id: null
-        },
-        raw: true
+          campaignId: campaignId,
+          pageStart: pageStart,
+          pageEnd: pageEnd,
+          readerId: null
+        }
       });
       
       const result = page ? {
         id: page.id,
-        campaign_id: page.campaign_id,
-        page_start: page.page_start,
-        page_end: page.page_end
+        campaign_id: page.campaignId,
+        page_start: page.pageStart,
+        page_end: page.pageEnd
       } : null;
       
       if (callback) callback(null, result);
@@ -211,18 +246,18 @@ class PageRepository {
   // دریافت صفحه بر اساس ID
   async getPageById(pageId, callback) {
     try {
-      const page = await QuranPage.findByPk(pageId, { raw: true });
+      const page = await QuranPage.findByPk(pageId);
       
       const result = page ? {
         id: page.id,
-        campaign_id: page.campaign_id,
-        page_start: page.page_start,
-        page_end: page.page_end,
-        reader_id: page.reader_id,
-        reader_name: page.reader_name,
-        assigned_at: page.assigned_at,
-        completed_at: page.completed_at,
-        is_completed: page.is_completed
+        campaign_id: page.campaignId,
+        page_start: page.pageStart,
+        page_end: page.pageEnd,
+        reader_id: page.readerId,
+        reader_name: page.readerName,
+        assigned_at: page.assignedAt,
+        completed_at: page.completedAt,
+        is_completed: page.isCompleted
       } : null;
       
       if (callback) callback(null, result);
@@ -238,34 +273,32 @@ class PageRepository {
   async getUserStats(userId, callback) {
     try {
       const completedPages = await QuranPage.count({
-        where: { reader_id: userId, is_completed: true }
+        where: { readerId: userId, isCompleted: true }
       });
       
       const readingPages = await QuranPage.count({
-        where: { reader_id: userId, is_completed: false }
+        where: { readerId: userId, isCompleted: false }
       });
       
       const recentPages = await QuranPage.findAll({
-        where: { reader_id: userId, is_completed: true },
+        where: { readerId: userId, isCompleted: true },
         include: [{
           model: Campaign,
           as: 'campaign',
           attributes: ['name']
         }],
         order: [['completed_at', 'DESC']],
-        limit: 10,
-        raw: true,
-        nest: true
+        limit: 10
       });
       
       const stats = {
         completedPages,
         readingPages,
         recentPages: recentPages.map(p => ({
-          page_start: p.page_start,
-          page_end: p.page_end,
+          page_start: p.pageStart,
+          page_end: p.pageEnd,
           campaign_name: p.campaign.name,
-          completed_at: p.completed_at
+          completed_at: p.completedAt
         }))
       };
       
@@ -283,22 +316,21 @@ class PageRepository {
     try {
       const pages = await QuranPage.findAll({
         where: {
-          campaign_id: campaignId,
-          reader_id: { [Op.ne]: null },
-          is_completed: false
+          campaignId: campaignId,
+          readerId: { [Op.ne]: null },
+          isCompleted: false
         },
-        order: [['assigned_at', 'DESC']],
-        raw: true
+        order: [['assigned_at', 'DESC']]
       });
       
       const result = pages.map(p => ({
         id: p.id,
-        campaign_id: p.campaign_id,
-        page_start: p.page_start,
-        page_end: p.page_end,
-        reader_id: p.reader_id,
-        reader_name: p.reader_name,
-        assigned_at: p.assigned_at
+        campaign_id: p.campaignId,
+        page_start: p.pageStart,
+        page_end: p.pageEnd,
+        reader_id: p.readerId,
+        reader_name: p.readerName,
+        assigned_at: p.assignedAt
       }));
       
       if (callback) callback(null, result);

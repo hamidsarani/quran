@@ -214,6 +214,56 @@ class QuranKhatmBot {
     const campaignId = parseInt(query.data.split('_')[2]);
 
     this.bot.answerCallbackQuery(query.id);
+
+    // دریافت اطلاعات کمپین
+    this.db.campaigns.getCampaignById(campaignId, (err, campaign) => {
+      if (err || !campaign) {
+        this.bot.sendMessage(chatId, 'خطا در دریافت اطلاعات کمپین');
+        return;
+      }
+
+      // اگر کمپین از نوع زائرین است، کد زائر را چک کن
+      if (campaign.type === 'zaerin') {
+        this.db.users.getUserZaerCode(userId, (err, result) => {
+          if (err) {
+            console.error('Error getting zaer code:', err);
+          }
+
+          // اگر کد زائر ندارد، درخواست کن
+          if (!result || !result.zaer_code) {
+            this.userStates[userId] = { 
+              waitingFor: 'zaer_code',
+              campaignId: campaignId
+            };
+            this.bot.editMessageText(
+              '🕌 این کمپین ویژه زائرین است.\n\nلطفاً کد زائر خود را وارد کنید:',
+              {
+                chat_id: chatId,
+                message_id: messageId,
+                reply_markup: {
+                  inline_keyboard: [[
+                    { text: '🔙 بازگشت', callback_data: 'join_khatm' }
+                  ]]
+                }
+              }
+            ).catch(err => {
+              console.error('Error editing message:', err.message);
+              this.bot.sendMessage(chatId, '🕌 این کمپین ویژه زائرین است.\n\nلطفاً کد زائر خود را وارد کنید:');
+            });
+            return;
+          }
+
+          // کد زائر دارد، ادامه بده
+          this.continueSelectCampaign(userId, chatId, messageId, campaignId);
+        });
+      } else {
+        // کمپین عادی است، ادامه بده
+        this.continueSelectCampaign(userId, chatId, messageId, campaignId);
+      }
+    });
+  }
+
+  continueSelectCampaign(userId, chatId, messageId, campaignId) {
     this.userStates[userId] = { campaignId };
 
     this.db.users.setUserCampaign(userId, campaignId, (err) => {
@@ -683,7 +733,7 @@ class QuranKhatmBot {
     if (!text || text.startsWith('/')) return;
 
     if (this.userStates[userId]?.waitingFor === 'campaign_name') {
-      this.db.campaigns.createCampaign(text, (err, campaignId) => {
+      this.db.campaigns.createCampaign(text, 'zaerin', (err, campaignId) => {
         if (err) {
           this.bot.sendMessage(chatId, 'خطا در ایجاد کمپین');
           return;
@@ -691,6 +741,27 @@ class QuranKhatmBot {
 
         this.bot.sendMessage(chatId, `✅ کمپین "${text}" با موفقیت ایجاد شد!`);
         delete this.userStates[userId];
+      });
+    }
+    else if (this.userStates[userId]?.waitingFor === 'zaer_code') {
+      const zaerCode = text.trim();
+      const campaignId = this.userStates[userId].campaignId;
+
+      if (!zaerCode || zaerCode.length < 3) {
+        this.bot.sendMessage(chatId, '❌ لطفاً یک کد زائر معتبر وارد کنید.');
+        return;
+      }
+
+      this.db.users.setUserZaerCode(userId, zaerCode, (err) => {
+        if (err) {
+          this.bot.sendMessage(chatId, '❌ خطا در ذخیره کد زائر');
+          return;
+        }
+
+        this.bot.sendMessage(chatId, `✅ کد زائر شما (${zaerCode}) ثبت شد!`);
+        
+        // ادامه فرآیند انتخاب کمپین
+        this.continueSelectCampaign(userId, chatId, null, campaignId);
       });
     }
     else if (this.userStates[userId]?.waitingFor === 'page_number') {
