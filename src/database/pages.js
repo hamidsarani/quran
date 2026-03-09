@@ -8,21 +8,21 @@ class PageRepository {
     try {
       const pages = await QuranPage.findAll({
         where: {
-          campaignId,
-          readerId: null
+          campaign_id: campaignId,
+          reader_id: null
         },
-        order: [['pageStart', 'ASC']],
+        order: [['page_start', 'ASC']],
         limit: 30,
         raw: true
       });
       
       const result = pages.map(p => ({
         id: p.id,
-        campaign_id: p.campaignId,
-        page_start: p.pageStart,
-        page_end: p.pageEnd,
-        reader_id: p.readerId,
-        reader_name: p.readerName
+        campaign_id: p.campaign_id,
+        page_start: p.page_start,
+        page_end: p.page_end,
+        reader_id: p.reader_id,
+        reader_name: p.reader_name
       }));
       
       if (callback) callback(null, result);
@@ -39,14 +39,14 @@ class PageRepository {
     try {
       const [updatedRowsCount] = await QuranPage.update(
         {
-          readerId: userId,
-          readerName: userName,
-          assignedAt: new Date()
+          reader_id: userId,
+          reader_name: userName,
+          assigned_at: new Date()
         },
         {
           where: {
             id: pageId,
-            readerId: null
+            reader_id: null
           }
         }
       );
@@ -66,13 +66,13 @@ class PageRepository {
     try {
       const [updatedRowsCount] = await QuranPage.update(
         {
-          isCompleted: true,
-          completedAt: new Date()
+          is_completed: true,
+          completed_at: new Date()
         },
         {
           where: {
             id: pageId,
-            readerId: userId
+            reader_id: userId
           }
         }
       );
@@ -92,15 +92,15 @@ class PageRepository {
     try {
       const [updatedRowsCount] = await QuranPage.update(
         {
-          readerId: null,
-          readerName: null,
-          assignedAt: null
+          reader_id: null,
+          reader_name: null,
+          assigned_at: null
         },
         {
           where: {
             id: pageId,
-            readerId: userId,
-            isCompleted: false
+            reader_id: userId,
+            is_completed: false
           }
         }
       );
@@ -120,21 +120,21 @@ class PageRepository {
     try {
       const pages = await QuranPage.findAll({
         where: {
-          campaignId,
-          isCompleted: true
+          campaign_id: campaignId,
+          is_completed: true
         },
-        order: [['completedAt', 'DESC']],
+        order: [['completed_at', 'DESC']],
         raw: true
       });
       
       const result = pages.map(p => ({
         id: p.id,
-        campaign_id: p.campaignId,
-        page_start: p.pageStart,
-        page_end: p.pageEnd,
-        reader_id: p.readerId,
-        reader_name: p.readerName,
-        completed_at: p.completedAt
+        campaign_id: p.campaign_id,
+        page_start: p.page_start,
+        page_end: p.page_end,
+        reader_id: p.reader_id,
+        reader_name: p.reader_name,
+        completed_at: p.completed_at
       }));
       
       if (callback) callback(null, result);
@@ -151,21 +151,21 @@ class PageRepository {
     try {
       const page = await QuranPage.findOne({
         where: {
-          readerId: userId,
-          campaignId,
-          isCompleted: false
+          reader_id: userId,
+          campaign_id: campaignId,
+          is_completed: false
         },
         raw: true
       });
       
       const result = page ? {
         id: page.id,
-        campaign_id: page.campaignId,
-        page_start: page.pageStart,
-        page_end: page.pageEnd,
-        reader_id: page.readerId,
-        reader_name: page.readerName,
-        assigned_at: page.assignedAt
+        campaign_id: page.campaign_id,
+        page_start: page.page_start,
+        page_end: page.page_end,
+        reader_id: page.reader_id,
+        reader_name: page.reader_name,
+        assigned_at: page.assigned_at
       } : null;
       
       if (callback) callback(null, result);
@@ -184,19 +184,19 @@ class PageRepository {
 
       const page = await QuranPage.findOne({
         where: {
-          campaignId,
-          pageStart,
-          pageEnd,
-          readerId: null
+          campaign_id: campaignId,
+          page_start: pageStart,
+          page_end: pageEnd,
+          reader_id: null
         },
         raw: true
       });
       
       const result = page ? {
         id: page.id,
-        campaign_id: page.campaignId,
-        page_start: page.pageStart,
-        page_end: page.pageEnd
+        campaign_id: page.campaign_id,
+        page_start: page.page_start,
+        page_end: page.page_end
       } : null;
       
       if (callback) callback(null, result);
@@ -215,14 +215,14 @@ class PageRepository {
       
       const result = page ? {
         id: page.id,
-        campaign_id: page.campaignId,
-        page_start: page.pageStart,
-        page_end: page.pageEnd,
-        reader_id: page.readerId,
-        reader_name: page.readerName,
-        assigned_at: page.assignedAt,
-        completed_at: page.completedAt,
-        is_completed: page.isCompleted
+        campaign_id: page.campaign_id,
+        page_start: page.page_start,
+        page_end: page.page_end,
+        reader_id: page.reader_id,
+        reader_name: page.reader_name,
+        assigned_at: page.assigned_at,
+        completed_at: page.completed_at,
+        is_completed: page.is_completed
       } : null;
       
       if (callback) callback(null, result);
@@ -238,21 +238,21 @@ class PageRepository {
   async getUserStats(userId, callback) {
     try {
       const completedPages = await QuranPage.count({
-        where: { readerId: userId, isCompleted: true }
+        where: { reader_id: userId, is_completed: true }
       });
       
       const readingPages = await QuranPage.count({
-        where: { readerId: userId, isCompleted: false }
+        where: { reader_id: userId, is_completed: false }
       });
       
       const recentPages = await QuranPage.findAll({
-        where: { readerId: userId, isCompleted: true },
+        where: { reader_id: userId, is_completed: true },
         include: [{
           model: Campaign,
           as: 'campaign',
           attributes: ['name']
         }],
-        order: [['completedAt', 'DESC']],
+        order: [['completed_at', 'DESC']],
         limit: 10,
         raw: true,
         nest: true
@@ -262,10 +262,10 @@ class PageRepository {
         completedPages,
         readingPages,
         recentPages: recentPages.map(p => ({
-          page_start: p.pageStart,
-          page_end: p.pageEnd,
+          page_start: p.page_start,
+          page_end: p.page_end,
           campaign_name: p.campaign.name,
-          completed_at: p.completedAt
+          completed_at: p.completed_at
         }))
       };
       
@@ -283,22 +283,22 @@ class PageRepository {
     try {
       const pages = await QuranPage.findAll({
         where: {
-          campaignId,
-          readerId: { [Op.ne]: null },
-          isCompleted: false
+          campaign_id: campaignId,
+          reader_id: { [Op.ne]: null },
+          is_completed: false
         },
-        order: [['assignedAt', 'DESC']],
+        order: [['assigned_at', 'DESC']],
         raw: true
       });
       
       const result = pages.map(p => ({
         id: p.id,
-        campaign_id: p.campaignId,
-        page_start: p.pageStart,
-        page_end: p.pageEnd,
-        reader_id: p.readerId,
-        reader_name: p.readerName,
-        assigned_at: p.assignedAt
+        campaign_id: p.campaign_id,
+        page_start: p.page_start,
+        page_end: p.page_end,
+        reader_id: p.reader_id,
+        reader_name: p.reader_name,
+        assigned_at: p.assigned_at
       }));
       
       if (callback) callback(null, result);

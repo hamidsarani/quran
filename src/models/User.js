@@ -13,21 +13,19 @@ module.exports = (sequelize) => {
     },
     firstName: {
       type: DataTypes.STRING,
-      allowNull: true,
-      field: 'first_name'
+      allowNull: true
     },
     lastName: {
       type: DataTypes.STRING,
-      allowNull: true,
-      field: 'last_name'
+      allowNull: true
     },
     selectedCampaignId: {
       type: DataTypes.INTEGER,
-      allowNull: true,
-      field: 'selected_campaign_id'
+      allowNull: true
     }
   }, {
     tableName: 'users',
+    underscored: true,
     timestamps: true,
     createdAt: 'joined_at',
     updatedAt: 'updated_at'

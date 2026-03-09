@@ -58,11 +58,11 @@ class UserRepository {
         attributes: [
           'id',
           'username', 
-          'firstName',
-          'lastName',
-          'joinedAt'
+          ['first_name', 'firstName'],
+          ['last_name', 'lastName'],
+          ['joined_at', 'joinedAt']
         ],
-        order: [['joinedAt', 'DESC']],
+        order: [['joined_at', 'DESC']],
         raw: true
       });
 
@@ -70,8 +70,8 @@ class UserRepository {
       const usersWithStats = await Promise.all(users.map(async (user) => {
         const completedCount = await QuranPage.count({
           where: {
-            readerId: user.id,
-            isCompleted: true
+            reader_id: user.id,
+            is_completed: true
           }
         });
 

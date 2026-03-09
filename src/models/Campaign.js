@@ -13,16 +13,15 @@ module.exports = (sequelize) => {
     },
     isActive: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true,
-      field: 'is_active'
+      defaultValue: true
     },
     isCompleted: {
       type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      field: 'is_completed'
+      defaultValue: false
     }
   }, {
     tableName: 'campaigns',
+    underscored: true,
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at'

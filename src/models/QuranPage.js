@@ -9,46 +9,39 @@ module.exports = (sequelize) => {
     },
     campaignId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      field: 'campaign_id'
+      allowNull: false
     },
     pageStart: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      field: 'page_start'
+      allowNull: false
     },
     pageEnd: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      field: 'page_end'
+      allowNull: false
     },
     readerId: {
       type: DataTypes.BIGINT,
-      allowNull: true,
-      field: 'reader_id'
+      allowNull: true
     },
     readerName: {
       type: DataTypes.STRING,
-      allowNull: true,
-      field: 'reader_name'
+      allowNull: true
     },
     assignedAt: {
       type: DataTypes.DATE,
-      allowNull: true,
-      field: 'assigned_at'
+      allowNull: true
     },
     completedAt: {
       type: DataTypes.DATE,
-      allowNull: true,
-      field: 'completed_at'
+      allowNull: true
     },
     isCompleted: {
       type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      field: 'is_completed'
+      defaultValue: false
     }
   }, {
     tableName: 'quran_pages',
+    underscored: true,
     timestamps: false
   });
 

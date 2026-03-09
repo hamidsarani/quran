@@ -13,9 +13,9 @@ class CampaignRepository {
       for (let i = 1; i <= config.quran.totalPages; i += config.quran.pagesPerPair) {
         const pageEnd = Math.min(i + 1, config.quran.totalPages);
         pages.push({
-          campaignId,
-          pageStart: i,
-          pageEnd: pageEnd
+          campaign_id: campaignId,
+          page_start: i,
+          page_end: pageEnd
         });
       }
       
@@ -34,17 +34,17 @@ class CampaignRepository {
   async getActiveCampaigns(callback) {
     try {
       const campaigns = await Campaign.findAll({
-        where: { isActive: true },
-        order: [['createdAt', 'DESC']],
+        where: { is_active: true },
+        order: [['created_at', 'DESC']],
         raw: true
       });
       
       const result = campaigns.map(c => ({
         id: c.id,
         name: c.name,
-        created_at: c.createdAt,
-        is_active: c.isActive,
-        is_completed: c.isCompleted
+        created_at: c.created_at,
+        is_active: c.is_active,
+        is_completed: c.is_completed
       }));
       
       if (callback) callback(null, result);
@@ -60,16 +60,16 @@ class CampaignRepository {
   async getAllCampaigns(callback) {
     try {
       const campaigns = await Campaign.findAll({
-        order: [['createdAt', 'DESC']],
+        order: [['created_at', 'DESC']],
         raw: true
       });
       
       const result = campaigns.map(c => ({
         id: c.id,
         name: c.name,
-        created_at: c.createdAt,
-        is_active: c.isActive,
-        is_completed: c.isCompleted
+        created_at: c.created_at,
+        is_active: c.is_active,
+        is_completed: c.is_completed
       }));
       
       if (callback) callback(null, result);
@@ -89,9 +89,9 @@ class CampaignRepository {
       const result = campaign ? {
         id: campaign.id,
         name: campaign.name,
-        created_at: campaign.createdAt,
-        is_active: campaign.isActive,
-        is_completed: campaign.isCompleted
+        created_at: campaign.created_at,
+        is_active: campaign.is_active,
+        is_completed: campaign.is_completed
       } : null;
       
       if (callback) callback(null, result);
@@ -108,7 +108,7 @@ class CampaignRepository {
     try {
       const campaign = await Campaign.findByPk(campaignId);
       if (campaign) {
-        campaign.isActive = !campaign.isActive;
+        campaign.is_active = !campaign.is_active;
         await campaign.save();
       }
       
@@ -125,7 +125,7 @@ class CampaignRepository {
   async setCampaignCompleted(campaignId, isCompleted, callback) {
     try {
       await Campaign.update(
-        { isCompleted },
+        { is_completed: isCompleted },
         { where: { id: campaignId } }
       );
       
@@ -142,17 +142,17 @@ class CampaignRepository {
   async getCampaignStats(campaignId, callback) {
     try {
       const totalPages = await QuranPage.count({
-        where: { campaignId }
+        where: { campaign_id: campaignId }
       });
       
       const completedPages = await QuranPage.count({
-        where: { campaignId, isCompleted: true }
+        where: { campaign_id: campaignId, is_completed: true }
       });
       
       const activeUsers = await QuranPage.count({
-        where: { campaignId, readerId: { [require('sequelize').Op.ne]: null } },
+        where: { campaign_id: campaignId, reader_id: { [require('sequelize').Op.ne]: null } },
         distinct: true,
-        col: 'readerId'
+        col: 'reader_id'
       });
       
       const stats = {
