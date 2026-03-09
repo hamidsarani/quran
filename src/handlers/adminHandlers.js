@@ -101,6 +101,79 @@ function showCampaignManagement(bot, chatId, messageId, campaignId, db) {
 }
 
 /**
+ * نمایش گزارش کمپین صلوات
+ */
+function showSalawatCampaignReport(bot, chatId, messageId, campaignId, campaign, db) {
+  // دریافت مجموع صلوات
+  db.salawat.getCampaignTotalSalawat(campaignId, (err, total) => {
+    if (err) {
+      console.error('Error getting total salawat:', err);
+      total = 0;
+    }
+
+    // دریافت تعداد شرکت‌کنندگان
+    db.salawat.getParticipantsCount(campaignId, (err, participants) => {
+      if (err) {
+        console.error('Error getting participants:', err);
+        participants = 0;
+      }
+
+      // دریافت top 20
+      db.salawat.getTopUsers(campaignId, 20, (err, topUsers) => {
+        if (err) {
+          console.error('Error getting top users:', err);
+          topUsers = [];
+        }
+
+        let report = `📊 گزارش کمپین صلوات: ${campaign.name}\n\n`;
+        report += `🌟 مجموع صلوات: ${total.toLocaleString('fa-IR')}\n`;
+        report += `👥 تعداد شرکت‌کنندگان: ${participants}\n\n`;
+
+        if (topUsers.length === 0) {
+          report += 'هنوز کسی صلوات ثبت نکرده است.';
+        } else {
+          report += '🏆 ۲۰ نفر برتر:\n\n';
+
+          topUsers.forEach((user, index) => {
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+            const userMention = createUserMention(user.user_id, user.user_name);
+            
+            report += `${medal} ${userMention} - ${user.count.toLocaleString('fa-IR')} صلوات\n`;
+            
+            if (user.zaer_code) {
+              report += `   🕌 کد زائر: ${user.zaer_code}\n`;
+            }
+            
+            report += '\n';
+          });
+        }
+
+        const keyboard = {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '🔙 بازگشت', callback_data: `manage_camp_${campaignId}` }]
+            ]
+          }
+        };
+
+        if (messageId) {
+          bot.editMessageText(report, {
+            chat_id: chatId,
+            message_id: messageId,
+            reply_markup: keyboard.reply_markup
+          }).catch(err => {
+            console.error('Error editing message:', err.message);
+            bot.sendMessage(chatId, report, keyboard);
+          });
+        } else {
+          bot.sendMessage(chatId, report, keyboard);
+        }
+      });
+    });
+  });
+}
+
+/**
  * نمایش گزارش کلی کمپین (خلاصه به تفکیک کاربر)
  */
 function showCampaignSummaryReport(bot, chatId, messageId, campaignId, db) {
@@ -110,6 +183,13 @@ function showCampaignSummaryReport(bot, chatId, messageId, campaignId, db) {
       return;
     }
 
+    // اگر کمپین صلوات است
+    if (campaign.type === 'salawat') {
+      showSalawatCampaignReport(bot, chatId, messageId, campaignId, campaign, db);
+      return;
+    }
+
+    // گزارش کمپین قرآن
     db.pages.getCompletedPagesWithUserInfo(campaignId, (err, pages) => {
       if (err) {
         bot.sendMessage(chatId, 'خطا در دریافت گزارش');
@@ -177,11 +257,10 @@ function showCampaignSummaryReport(bot, chatId, messageId, campaignId, db) {
       bot.editMessageText(report, {
         chat_id: chatId,
         message_id: messageId,
-        parse_mode: 'HTML',
         reply_markup: keyboard.reply_markup
       }).catch(err => {
         console.error('Error editing message:', err.message);
-        bot.sendMessage(chatId, report, { parse_mode: 'HTML', ...keyboard });
+        bot.sendMessage(chatId, report, keyboard);
       });
     });
   });
@@ -242,11 +321,10 @@ function showUsersList(bot, chatId, messageId, db) {
     bot.editMessageText(message, {
       chat_id: chatId,
       message_id: messageId,
-      parse_mode: 'HTML',
       reply_markup: keyboard.reply_markup
     }).catch(err => {
       console.error('Error editing message:', err.message);
-      bot.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
+      bot.sendMessage(chatId, message, keyboard);
     });
   });
 }
@@ -322,11 +400,10 @@ function showInProgressPages(bot, chatId, messageId, campaignId, db) {
       bot.editMessageText(message, {
         chat_id: chatId,
         message_id: messageId,
-        parse_mode: 'HTML',
         reply_markup: keyboard.reply_markup
       }).catch(err => {
         console.error('Error editing message:', err.message);
-        bot.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
+        bot.sendMessage(chatId, message, keyboard);
       });
     });
   });

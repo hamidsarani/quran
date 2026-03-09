@@ -8,18 +8,21 @@ class CampaignRepository {
       const campaign = await Campaign.create({ name, type });
       const campaignId = campaign.id;
       
-      // ایجاد 302 جفت صفحه (604 صفحه به صورت 2 تایی)
-      const pages = [];
-      for (let i = 1; i <= config.quran.totalPages; i += config.quran.pagesPerPair) {
-        const pageEnd = Math.min(i + 1, config.quran.totalPages);
-        pages.push({
-          campaignId: campaignId,
-          pageStart: i,
-          pageEnd: pageEnd
-        });
+      // فقط برای کمپین‌های زائرین (قرآن) صفحات ایجاد می‌کنیم
+      if (type === 'zaerin') {
+        // ایجاد 302 جفت صفحه (604 صفحه به صورت 2 تایی)
+        const pages = [];
+        for (let i = 1; i <= config.quran.totalPages; i += config.quran.pagesPerPair) {
+          const pageEnd = Math.min(i + 1, config.quran.totalPages);
+          pages.push({
+            campaignId: campaignId,
+            pageStart: i,
+            pageEnd: pageEnd
+          });
+        }
+        
+        await QuranPage.bulkCreate(pages);
       }
-      
-      await QuranPage.bulkCreate(pages);
       
       if (callback) callback(null, campaignId);
       return campaignId;

@@ -179,6 +179,9 @@ class QuranKhatmBot {
     else if (data === 'create_campaign') {
       this.handleCreateCampaign(query);
     }
+    else if (data.startsWith('create_camp_type_')) {
+      this.handleSelectCampaignType(query);
+    }
     else if (data === 'manage_campaigns') {
       this.handleManageCampaigns(query);
     }
@@ -199,6 +202,20 @@ class QuranKhatmBot {
     }
     else if (data.startsWith('inprogress_pages_')) {
       this.handleInProgressPages(query);
+    }
+    else if (data.startsWith('salawat_send_')) {
+      const { incrementSalawat } = require('./handlers/salawatHandlers');
+      incrementSalawat(this.bot, query, this.db);
+    }
+    else if (data.startsWith('salawat_counter_')) {
+      const campaignId = parseInt(data.split('_')[2]);
+      const { showSalawatCounter } = require('./handlers/salawatHandlers');
+      showSalawatCounter(this.bot, chatId, messageId, campaignId, userId, this.db);
+    }
+    else if (data.startsWith('salawat_rank_')) {
+      const campaignId = parseInt(data.split('_')[2]);
+      const { showSalawatRanking } = require('./handlers/salawatHandlers');
+      showSalawatRanking(this.bot, chatId, messageId, campaignId, this.db);
     }
     
     // بازگشت به منوی اصلی
@@ -270,26 +287,42 @@ class QuranKhatmBot {
       if (err) console.error('Error setting user campaign:', err);
     });
 
-    this.db.pages.getUserAssignedPage(userId, campaignId, (err, assignedPage) => {
-      if (err) {
-        this.bot.sendMessage(chatId, 'خطا در بررسی وضعیت');
+    // دریافت نوع کمپین
+    this.db.campaigns.getCampaignById(campaignId, (err, campaign) => {
+      if (err || !campaign) {
+        this.bot.sendMessage(chatId, 'خطا در دریافت اطلاعات کمپین');
         return;
       }
 
-      if (assignedPage) {
-        // نمایش اطلاعات صفحه بدون متن
-        showPageInfo(
-          this.bot, 
-          chatId, 
-          messageId, 
-          assignedPage.id, 
-          assignedPage.page_start, 
-          assignedPage.page_end
-        );
+      // اگر کمپین صلوات است
+      if (campaign.type === 'salawat') {
+        const { showSalawatCounter } = require('./handlers/salawatHandlers');
+        showSalawatCounter(this.bot, chatId, messageId, campaignId, userId, this.db);
         return;
       }
 
-      showAvailablePages(this.bot, chatId, messageId, campaignId, this.db);
+      // کمپین زائرین (قرآن)
+      this.db.pages.getUserAssignedPage(userId, campaignId, (err, assignedPage) => {
+        if (err) {
+          this.bot.sendMessage(chatId, 'خطا در بررسی وضعیت');
+          return;
+        }
+
+        if (assignedPage) {
+          // نمایش اطلاعات صفحه بدون متن
+          showPageInfo(
+            this.bot, 
+            chatId, 
+            messageId, 
+            assignedPage.id, 
+            assignedPage.page_start, 
+            assignedPage.page_end
+          );
+          return;
+        }
+
+        showAvailablePages(this.bot, chatId, messageId, campaignId, this.db);
+      });
     });
   }
 
@@ -556,14 +589,54 @@ class QuranKhatmBot {
   handleCreateCampaign(query) {
     const userId = query.from.id;
     const chatId = query.message.chat.id;
+    const messageId = query.message.message_id;
 
     if (!isAdmin(userId)) {
       this.bot.answerCallbackQuery(query.id, { text: 'شما دسترسی ندارید' });
       return;
     }
 
-    this.userStates[userId] = { waitingFor: 'campaign_name' };
-    this.bot.sendMessage(chatId, 'لطفاً نام کمپین را وارد کنید:');
+    // نمایش انتخاب نوع کمپین
+    const message = '📝 ایجاد کمپین جدید\n\nلطفاً نوع کمپین را انتخاب کنید:';
+    const keyboard = {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📖 ختم قرآن (زائرین)', callback_data: 'create_camp_type_zaerin' }],
+          [{ text: '🌟 صلوات شمار', callback_data: 'create_camp_type_salawat' }],
+          [{ text: '🔙 بازگشت', callback_data: 'admin_panel' }]
+        ]
+      }
+    };
+
+    this.bot.editMessageText(message, {
+      chat_id: chatId,
+      message_id: messageId,
+      reply_markup: keyboard.reply_markup
+    }).catch(err => {
+      console.error('Error editing message:', err.message);
+      this.bot.sendMessage(chatId, message, keyboard);
+    });
+
+    this.bot.answerCallbackQuery(query.id);
+  }
+
+  handleSelectCampaignType(query) {
+    const userId = query.from.id;
+    const chatId = query.message.chat.id;
+    const campaignType = query.data.split('_')[3]; // zaerin یا salawat
+
+    if (!isAdmin(userId)) {
+      this.bot.answerCallbackQuery(query.id, { text: 'شما دسترسی ندارید' });
+      return;
+    }
+
+    this.userStates[userId] = { 
+      waitingFor: 'campaign_name',
+      campaignType: campaignType
+    };
+
+    const typeText = campaignType === 'salawat' ? '🌟 صلوات شمار' : '📖 ختم قرآن (زائرین)';
+    this.bot.sendMessage(chatId, `نوع کمپین: ${typeText}\n\nلطفاً نام کمپین را وارد کنید:`);
     this.bot.answerCallbackQuery(query.id);
   }
 
@@ -733,13 +806,16 @@ class QuranKhatmBot {
     if (!text || text.startsWith('/')) return;
 
     if (this.userStates[userId]?.waitingFor === 'campaign_name') {
-      this.db.campaigns.createCampaign(text, 'zaerin', (err, campaignId) => {
+      const campaignType = this.userStates[userId]?.campaignType || 'zaerin';
+      
+      this.db.campaigns.createCampaign(text, campaignType, (err, campaignId) => {
         if (err) {
           this.bot.sendMessage(chatId, 'خطا در ایجاد کمپین');
           return;
         }
 
-        this.bot.sendMessage(chatId, `✅ کمپین "${text}" با موفقیت ایجاد شد!`);
+        const typeText = campaignType === 'salawat' ? '🌟 صلوات شمار' : '📖 ختم قرآن';
+        this.bot.sendMessage(chatId, `✅ کمپین "${text}" (${typeText}) با موفقیت ایجاد شد!`);
         delete this.userStates[userId];
       });
     }

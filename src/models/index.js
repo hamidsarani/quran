@@ -8,6 +8,7 @@ const sequelize = new Sequelize(config.database);
 const User = require('./User')(sequelize);
 const Campaign = require('./Campaign')(sequelize);
 const QuranPage = require('./QuranPage')(sequelize);
+const Salawat = require('./Salawat')(sequelize);
 
 // تعریف روابط
 User.belongsTo(Campaign, { 
@@ -42,6 +43,26 @@ User.hasMany(QuranPage, {
   as: 'assignedPages' 
 });
 
+Campaign.hasMany(Salawat, {
+  foreignKey: 'campaignId',
+  as: 'salawat'
+});
+
+Salawat.belongsTo(Campaign, {
+  foreignKey: 'campaignId',
+  as: 'campaign'
+});
+
+User.hasMany(Salawat, {
+  foreignKey: 'userId',
+  as: 'salawat'
+});
+
+Salawat.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
 // تست اتصال
 async function testConnection() {
   try {
@@ -67,6 +88,7 @@ module.exports = {
   User,
   Campaign,
   QuranPage,
+  Salawat,
   testConnection,
   syncModels
 };

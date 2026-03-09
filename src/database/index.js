@@ -2,12 +2,14 @@ const { sequelize, testConnection, syncModels } = require('../models');
 const UserRepository = require('./users');
 const CampaignRepository = require('./campaigns');
 const PageRepository = require('./pages');
+const SalawatRepository = require('./salawat');
 
 class DatabaseManager {
   constructor() {
     this.users = new UserRepository();
     this.campaigns = new CampaignRepository();
     this.pages = new PageRepository();
+    this.salawat = new SalawatRepository();
     
     this.init();
   }

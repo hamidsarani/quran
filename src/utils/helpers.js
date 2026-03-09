@@ -27,10 +27,11 @@ function getPagePair(pageNumber) {
 }
 
 /**
- * ساخت لینک منشن کاربر برای Bale
+ * فرمت نام کاربر برای نمایش
  */
 function createUserMention(userId, userName) {
-  return `<a href="mention://${userId}">${userName}</a>`;
+  // فقط نام کاربر را برمی‌گردانیم بدون لینک
+  return userName || 'کاربر';
 }
 
 /**
