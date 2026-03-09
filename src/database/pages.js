@@ -1,151 +1,313 @@
+const { QuranPage, Campaign } = require('../models');
 const { getPagePair } = require('../utils/helpers');
+const { Op } = require('sequelize');
 
 class PageRepository {
-  constructor(db) {
-    this.db = db;
-  }
-
   // دریافت صفحات خالی یک کمپین
-  getAvailablePages(campaignId, callback) {
-    this.db.all(
-      `SELECT * FROM quran_pages 
-       WHERE campaign_id = ? AND reader_id IS NULL 
-       ORDER BY page_start LIMIT 30`,
-      [campaignId],
-      callback
-    );
+  async getAvailablePages(campaignId, callback) {
+    try {
+      const pages = await QuranPage.findAll({
+        where: {
+          campaignId,
+          readerId: null
+        },
+        order: [['pageStart', 'ASC']],
+        limit: 30,
+        raw: true
+      });
+      
+      const result = pages.map(p => ({
+        id: p.id,
+        campaign_id: p.campaignId,
+        page_start: p.pageStart,
+        page_end: p.pageEnd,
+        reader_id: p.readerId,
+        reader_name: p.readerName
+      }));
+      
+      if (callback) callback(null, result);
+      return result;
+    } catch (error) {
+      console.error('Error getting available pages:', error.message);
+      if (callback) callback(error);
+      throw error;
+    }
   }
 
   // انتساب صفحه به کاربر
-  assignPage(pageId, userId, userName, callback) {
-    this.db.run(
-      `UPDATE quran_pages 
-       SET reader_id = ?, reader_name = ?, assigned_at = CURRENT_TIMESTAMP 
-       WHERE id = ? AND reader_id IS NULL`,
-      [userId, userName, pageId],
-      function(err) {
-        callback(err, this);
-      }
-    );
+  async assignPage(pageId, userId, userName, callback) {
+    try {
+      const [updatedRowsCount] = await QuranPage.update(
+        {
+          readerId: userId,
+          readerName: userName,
+          assignedAt: new Date()
+        },
+        {
+          where: {
+            id: pageId,
+            readerId: null
+          }
+        }
+      );
+      
+      const result = { changes: updatedRowsCount };
+      if (callback) callback(null, result);
+      return result;
+    } catch (error) {
+      console.error('Error assigning page:', error.message);
+      if (callback) callback(error);
+      throw error;
+    }
   }
 
   // تکمیل خواندن صفحه
-  completePage(pageId, userId, callback) {
-    this.db.run(
-      `UPDATE quran_pages 
-       SET is_completed = 1, completed_at = CURRENT_TIMESTAMP 
-       WHERE id = ? AND reader_id = ?`,
-      [pageId, userId],
-      function(err) {
-        callback(err, this);
-      }
-    );
+  async completePage(pageId, userId, callback) {
+    try {
+      const [updatedRowsCount] = await QuranPage.update(
+        {
+          isCompleted: true,
+          completedAt: new Date()
+        },
+        {
+          where: {
+            id: pageId,
+            readerId: userId
+          }
+        }
+      );
+      
+      const result = { changes: updatedRowsCount };
+      if (callback) callback(null, result);
+      return result;
+    } catch (error) {
+      console.error('Error completing page:', error.message);
+      if (callback) callback(error);
+      throw error;
+    }
   }
 
   // لغو انتخاب صفحه
-  cancelPage(pageId, userId, callback) {
-    this.db.run(
-      `UPDATE quran_pages 
-       SET reader_id = NULL, reader_name = NULL, assigned_at = NULL 
-       WHERE id = ? AND reader_id = ? AND is_completed = 0`,
-      [pageId, userId],
-      function(err) {
-        callback(err, this);
-      }
-    );
+  async cancelPage(pageId, userId, callback) {
+    try {
+      const [updatedRowsCount] = await QuranPage.update(
+        {
+          readerId: null,
+          readerName: null,
+          assignedAt: null
+        },
+        {
+          where: {
+            id: pageId,
+            readerId: userId,
+            isCompleted: false
+          }
+        }
+      );
+      
+      const result = { changes: updatedRowsCount };
+      if (callback) callback(null, result);
+      return result;
+    } catch (error) {
+      console.error('Error canceling page:', error.message);
+      if (callback) callback(error);
+      throw error;
+    }
   }
 
   // دریافت صفحات تکمیل شده یک کمپین
-  getCompletedPages(campaignId, callback) {
-    this.db.all(
-      `SELECT * FROM quran_pages 
-       WHERE campaign_id = ? AND is_completed = 1 
-       ORDER BY completed_at DESC`,
-      [campaignId],
-      callback
-    );
+  async getCompletedPages(campaignId, callback) {
+    try {
+      const pages = await QuranPage.findAll({
+        where: {
+          campaignId,
+          isCompleted: true
+        },
+        order: [['completedAt', 'DESC']],
+        raw: true
+      });
+      
+      const result = pages.map(p => ({
+        id: p.id,
+        campaign_id: p.campaignId,
+        page_start: p.pageStart,
+        page_end: p.pageEnd,
+        reader_id: p.readerId,
+        reader_name: p.readerName,
+        completed_at: p.completedAt
+      }));
+      
+      if (callback) callback(null, result);
+      return result;
+    } catch (error) {
+      console.error('Error getting completed pages:', error.message);
+      if (callback) callback(error);
+      throw error;
+    }
   }
 
   // دریافت صفحه انتساب یافته به کاربر
-  getUserAssignedPage(userId, campaignId, callback) {
-    this.db.get(
-      `SELECT * FROM quran_pages 
-       WHERE reader_id = ? AND campaign_id = ? AND is_completed = 0`,
-      [userId, campaignId],
-      callback
-    );
+  async getUserAssignedPage(userId, campaignId, callback) {
+    try {
+      const page = await QuranPage.findOne({
+        where: {
+          readerId: userId,
+          campaignId,
+          isCompleted: false
+        },
+        raw: true
+      });
+      
+      const result = page ? {
+        id: page.id,
+        campaign_id: page.campaignId,
+        page_start: page.pageStart,
+        page_end: page.pageEnd,
+        reader_id: page.readerId,
+        reader_name: page.readerName,
+        assigned_at: page.assignedAt
+      } : null;
+      
+      if (callback) callback(null, result);
+      return result;
+    } catch (error) {
+      console.error('Error getting user assigned page:', error.message);
+      if (callback) callback(error);
+      throw error;
+    }
   }
 
   // دریافت صفحه بر اساس شماره
-  getPageByNumber(campaignId, pageNumber, callback) {
-    const { pageStart, pageEnd } = getPagePair(pageNumber);
+  async getPageByNumber(campaignId, pageNumber, callback) {
+    try {
+      const { pageStart, pageEnd } = getPagePair(pageNumber);
 
-    this.db.get(
-      `SELECT * FROM quran_pages 
-       WHERE campaign_id = ? AND page_start = ? AND page_end = ? AND reader_id IS NULL`,
-      [campaignId, pageStart, pageEnd],
-      callback
-    );
+      const page = await QuranPage.findOne({
+        where: {
+          campaignId,
+          pageStart,
+          pageEnd,
+          readerId: null
+        },
+        raw: true
+      });
+      
+      const result = page ? {
+        id: page.id,
+        campaign_id: page.campaignId,
+        page_start: page.pageStart,
+        page_end: page.pageEnd
+      } : null;
+      
+      if (callback) callback(null, result);
+      return result;
+    } catch (error) {
+      console.error('Error getting page by number:', error.message);
+      if (callback) callback(error);
+      throw error;
+    }
   }
 
   // دریافت صفحه بر اساس ID
-  getPageById(pageId, callback) {
-    this.db.get(
-      'SELECT * FROM quran_pages WHERE id = ?',
-      [pageId],
-      callback
-    );
+  async getPageById(pageId, callback) {
+    try {
+      const page = await QuranPage.findByPk(pageId, { raw: true });
+      
+      const result = page ? {
+        id: page.id,
+        campaign_id: page.campaignId,
+        page_start: page.pageStart,
+        page_end: page.pageEnd,
+        reader_id: page.readerId,
+        reader_name: page.readerName,
+        assigned_at: page.assignedAt,
+        completed_at: page.completedAt,
+        is_completed: page.isCompleted
+      } : null;
+      
+      if (callback) callback(null, result);
+      return result;
+    } catch (error) {
+      console.error('Error getting page by id:', error.message);
+      if (callback) callback(error);
+      throw error;
+    }
   }
 
   // دریافت آمار کاربر
-  getUserStats(userId, callback) {
-    const stats = {};
-    
-    // تعداد صفحات خوانده شده
-    this.db.get(
-      'SELECT COUNT(*) as completed FROM quran_pages WHERE reader_id = ? AND is_completed = 1',
-      [userId],
-      (err, result) => {
-        if (err) return callback(err);
-        stats.completedPages = result.completed;
-        
-        // تعداد صفحات در حال خواندن
-        this.db.get(
-          'SELECT COUNT(*) as reading FROM quran_pages WHERE reader_id = ? AND is_completed = 0',
-          [userId],
-          (err, result) => {
-            if (err) return callback(err);
-            stats.readingPages = result.reading;
-            
-            // لیست صفحات خوانده شده
-            this.db.all(
-              `SELECT qp.*, c.name as campaign_name 
-               FROM quran_pages qp 
-               JOIN campaigns c ON qp.campaign_id = c.id 
-               WHERE qp.reader_id = ? AND qp.is_completed = 1 
-               ORDER BY qp.completed_at DESC LIMIT 10`,
-              [userId],
-              (err, pages) => {
-                if (err) return callback(err);
-                stats.recentPages = pages;
-                callback(null, stats);
-              }
-            );
-          }
-        );
-      }
-    );
+  async getUserStats(userId, callback) {
+    try {
+      const completedPages = await QuranPage.count({
+        where: { readerId: userId, isCompleted: true }
+      });
+      
+      const readingPages = await QuranPage.count({
+        where: { readerId: userId, isCompleted: false }
+      });
+      
+      const recentPages = await QuranPage.findAll({
+        where: { readerId: userId, isCompleted: true },
+        include: [{
+          model: Campaign,
+          as: 'campaign',
+          attributes: ['name']
+        }],
+        order: [['completedAt', 'DESC']],
+        limit: 10,
+        raw: true,
+        nest: true
+      });
+      
+      const stats = {
+        completedPages,
+        readingPages,
+        recentPages: recentPages.map(p => ({
+          page_start: p.pageStart,
+          page_end: p.pageEnd,
+          campaign_name: p.campaign.name,
+          completed_at: p.completedAt
+        }))
+      };
+      
+      if (callback) callback(null, stats);
+      return stats;
+    } catch (error) {
+      console.error('Error getting user stats:', error.message);
+      if (callback) callback(error);
+      throw error;
+    }
   }
 
   // دریافت صفحات در حال خواندن (assigned ولی complete نشده)
-  getInProgressPages(campaignId, callback) {
-    this.db.all(
-      `SELECT * FROM quran_pages 
-       WHERE campaign_id = ? AND reader_id IS NOT NULL AND is_completed = 0 
-       ORDER BY assigned_at DESC`,
-      [campaignId],
-      callback
-    );
+  async getInProgressPages(campaignId, callback) {
+    try {
+      const pages = await QuranPage.findAll({
+        where: {
+          campaignId,
+          readerId: { [Op.ne]: null },
+          isCompleted: false
+        },
+        order: [['assignedAt', 'DESC']],
+        raw: true
+      });
+      
+      const result = pages.map(p => ({
+        id: p.id,
+        campaign_id: p.campaignId,
+        page_start: p.pageStart,
+        page_end: p.pageEnd,
+        reader_id: p.readerId,
+        reader_name: p.readerName,
+        assigned_at: p.assignedAt
+      }));
+      
+      if (callback) callback(null, result);
+      return result;
+    } catch (error) {
+      console.error('Error getting in-progress pages:', error.message);
+      if (callback) callback(error);
+      throw error;
+    }
   }
 }
 

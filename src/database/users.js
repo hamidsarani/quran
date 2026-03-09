@@ -2,7 +2,7 @@ const { User, Campaign, QuranPage } = require('../models');
 
 class UserRepository {
   // ثبت کاربر
-  async registerUser(userId, username, firstName, lastName) {
+  async registerUser(userId, username, firstName, lastName, callback) {
     try {
       const [user, created] = await User.upsert({
         id: userId,
@@ -10,39 +10,49 @@ class UserRepository {
         firstName,
         lastName
       });
+      if (callback) callback(null, user);
       return user;
     } catch (error) {
-      throw new Error(`Error registering user: ${error.message}`);
+      console.error('Error registering user:', error.message);
+      if (callback) callback(error);
+      throw error;
     }
   }
 
   // تنظیم کمپین انتخابی کاربر
-  async setUserCampaign(userId, campaignId) {
+  async setUserCampaign(userId, campaignId, callback) {
     try {
       const [updatedRowsCount] = await User.update(
         { selectedCampaignId: campaignId },
         { where: { id: userId } }
       );
+      if (callback) callback(null);
       return updatedRowsCount > 0;
     } catch (error) {
-      throw new Error(`Error setting user campaign: ${error.message}`);
+      console.error('Error setting user campaign:', error.message);
+      if (callback) callback(error);
+      throw error;
     }
   }
 
   // دریافت کمپین انتخابی کاربر
-  async getUserCampaign(userId) {
+  async getUserCampaign(userId, callback) {
     try {
       const user = await User.findByPk(userId, {
         attributes: ['selectedCampaignId']
       });
-      return user ? { selected_campaign_id: user.selectedCampaignId } : null;
+      const result = user ? { selected_campaign_id: user.selectedCampaignId } : null;
+      if (callback) callback(null, result);
+      return result;
     } catch (error) {
-      throw new Error(`Error getting user campaign: ${error.message}`);
+      console.error('Error getting user campaign:', error.message);
+      if (callback) callback(error);
+      throw error;
     }
   }
 
   // دریافت لیست تمام کاربران با آمار
-  async getAllUsers() {
+  async getAllUsers(callback) {
     try {
       const users = await User.findAll({
         attributes: [
@@ -50,29 +60,37 @@ class UserRepository {
           'username', 
           'firstName',
           'lastName',
-          'joinedAt',
-          [
-            User.sequelize.literal(`(
-              SELECT COUNT(*)
-              FROM quran_pages 
-              WHERE reader_id = "User"."id" AND is_completed = true
-            )`),
-            'completedPages'
-          ]
+          'joinedAt'
         ],
-        order: [['joinedAt', 'DESC']]
+        order: [['joinedAt', 'DESC']],
+        raw: true
       });
 
-      return users.map(user => ({
-        user_id: user.id,
-        username: user.username,
-        first_name: user.firstName,
-        last_name: user.lastName,
-        joined_at: user.joinedAt,
-        completed_pages: user.dataValues.completedPages
+      // دریافت تعداد صفحات خوانده شده برای هر کاربر
+      const usersWithStats = await Promise.all(users.map(async (user) => {
+        const completedCount = await QuranPage.count({
+          where: {
+            readerId: user.id,
+            isCompleted: true
+          }
+        });
+
+        return {
+          user_id: user.id,
+          username: user.username,
+          first_name: user.firstName,
+          last_name: user.lastName,
+          joined_at: user.joinedAt,
+          completed_pages: completedCount
+        };
       }));
+
+      if (callback) callback(null, usersWithStats);
+      return usersWithStats;
     } catch (error) {
-      throw new Error(`Error getting all users: ${error.message}`);
+      console.error('Error getting all users:', error.message);
+      if (callback) callback(error);
+      throw error;
     }
   }
 }
