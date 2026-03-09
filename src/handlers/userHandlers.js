@@ -2,7 +2,7 @@ const { calculateProgress } = require('../utils/helpers');
 const { showPageInfo } = require('../utils/quranSender');
 
 /**
- * هندلر دکمه "شرکت در ختم قرآن"
+ * هندلر دکمه "شرکت در پویش"
  */
 async function handleJoinKhatm(bot, query, db, userStates) {
   const chatId = query.message.chat.id;
@@ -21,29 +21,47 @@ async function handleJoinKhatm(bot, query, db, userStates) {
     if (userCampaign && userCampaign.selected_campaign_id) {
       // کاربر قبلاً کمپین انتخاب کرده
       const campaignId = userCampaign.selected_campaign_id;
-      userStates[userId] = { campaignId };
-
-      db.pages.getUserAssignedPage(userId, campaignId, (err, assignedPage) => {
-        if (err) {
-          console.error('Error getting assigned page:', err);
-          bot.sendMessage(chatId, 'خطا در بررسی وضعیت');
+      
+      // بررسی نوع کمپین
+      db.campaigns.getCampaignById(campaignId, (err, campaign) => {
+        if (err || !campaign) {
+          console.error('Error getting campaign:', err);
+          showCampaignSelection(bot, chatId, messageId, db);
           return;
         }
 
-        if (assignedPage) {
-          // نمایش اطلاعات صفحه بدون متن
-          showPageInfo(
-            bot,
-            chatId,
-            messageId,
-            assignedPage.id,
-            assignedPage.page_start,
-            assignedPage.page_end
-          );
+        // اگر کمپین صلوات است، به صلوات شمار هدایت کن
+        if (campaign.type === 'salawat') {
+          const { showSalawatCounter } = require('./salawatHandlers');
+          showSalawatCounter(bot, chatId, messageId, campaignId, userId, db);
           return;
         }
 
-        showAvailablePages(bot, chatId, messageId, campaignId, db);
+        // کمپین قرآن است
+        userStates[userId] = { campaignId };
+
+        db.pages.getUserAssignedPage(userId, campaignId, (err, assignedPage) => {
+          if (err) {
+            console.error('Error getting assigned page:', err);
+            bot.sendMessage(chatId, 'خطا در بررسی وضعیت');
+            return;
+          }
+
+          if (assignedPage) {
+            // نمایش اطلاعات صفحه بدون متن
+            showPageInfo(
+              bot,
+              chatId,
+              messageId,
+              assignedPage.id,
+              assignedPage.page_start,
+              assignedPage.page_end
+            );
+            return;
+          }
+
+          showAvailablePages(bot, chatId, messageId, campaignId, db);
+        });
       });
     } else {
       // کاربر هنوز کمپین انتخاب نکرده
@@ -212,7 +230,7 @@ function showUserStatus(bot, chatId, userId, db) {
     const keyboard = {
       reply_markup: {
         inline_keyboard: [
-          [{ text: '📖 شرکت در ختم قرآن', callback_data: 'join_khatm' }],
+          [{ text: '📖 شرکت در پویش', callback_data: 'join_khatm' }],
           [{ text: '🔙 بازگشت', callback_data: 'back_to_main' }]
         ]
       }

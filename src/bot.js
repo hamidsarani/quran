@@ -81,12 +81,12 @@ class QuranKhatmBot {
         console.error('Error registering user:', err.message);
       });
 
-    const welcomeMessage = `سلام ${firstName} عزیز! 🌙\n\nبه ربات ختم قرآن دسته‌جمعی خوش آمدید.\n\nبرای شرکت در ختم قرآن از دکمه‌های زیر استفاده کنید:`;
+    const welcomeMessage = `سلام ${firstName} عزیز! 🌙\n\nبه ربات پویش‌های مذهبی خوش آمدید.\n\nبرای شرکت در پویش‌ها از دکمه‌های زیر استفاده کنید:`;
 
     const keyboard = {
       reply_markup: {
         inline_keyboard: [
-          [{ text: '📖 شرکت در ختم قرآن', callback_data: 'join_khatm' }],
+          [{ text: '📖 شرکت در پویش', callback_data: 'join_khatm' }],
           [{ text: '📊 وضعیت من', callback_data: 'my_status' }],
           ...(isAdmin(userId) ? [[{ text: '⚙️ پنل ادمین', callback_data: 'admin_panel' }]] : [])
         ]
@@ -100,10 +100,11 @@ class QuranKhatmBot {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
 
-    let helpMessage = `📚 راهنمای استفاده از ربات ختم قرآن\n\n`;
+    let helpMessage = `📚 راهنمای استفاده از ربات پویش‌های مذهبی\n\n`;
     helpMessage += `🔹 برای کاربران:\n`;
-    helpMessage += `• از دکمه "شرکت در ختم قرآن" برای انتخاب کمپین و صفحه استفاده کنید\n`;
-    helpMessage += `• هر بار 2 صفحه (یک جفت) به شما اختصاص داده می‌شود\n`;
+    helpMessage += `• از دکمه "شرکت در پویش" برای انتخاب کمپین استفاده کنید\n`;
+    helpMessage += `• در پویش ختم قرآن: هر بار 2 صفحه (یک جفت) به شما اختصاص داده می‌شود\n`;
+    helpMessage += `• در پویش صلوات: هر بار که صلوات می‌فرستید، دکمه را بزنید\n`;
     helpMessage += `• می‌توانید متن قرآن را مشاهده کنید یا از منابع دیگر استفاده کنید\n`;
     helpMessage += `• بعد از خواندن هر دو صفحه، دکمه "هر دو صفحه را خواندم" را بزنید\n`;
     helpMessage += `• از دکمه "وضعیت من" برای مشاهده پیشرفت خود استفاده کنید\n\n`;
@@ -117,9 +118,9 @@ class QuranKhatmBot {
     }
     
     helpMessage += `❓ سوالات متداول:\n`;
-    helpMessage += `• چگونه صفحه انتخاب کنم؟ از منوی اصلی "شرکت در ختم قرآن" را بزنید\n`;
+    helpMessage += `• چگونه در پویش شرکت کنم؟ از منوی اصلی "شرکت در پویش" را بزنید\n`;
     helpMessage += `• چگونه کمپین عوض کنم؟ از دکمه "تغییر کمپین" استفاده کنید\n`;
-    helpMessage += `• آیا می‌توانم بیش از یک صفحه انتخاب کنم؟ بله، بعد از خواندن صفحه قبلی\n`;
+    helpMessage += `• آیا می‌توانم در چند پویش شرکت کنم؟ بله، با تغییر کمپین\n`;
     helpMessage += `• متن قرآن از کجا می‌آید؟ از API رسمی قرآن کریم\n\n`;
     helpMessage += `📞 برای پشتیبانی با ادمین تماس بگیرید.`;
 
@@ -784,7 +785,7 @@ class QuranKhatmBot {
     const keyboard = {
       reply_markup: {
         inline_keyboard: [
-          [{ text: '📖 شرکت در ختم قرآن', callback_data: 'join_khatm' }],
+          [{ text: '📖 شرکت در پویش', callback_data: 'join_khatm' }],
           [{ text: '📊 وضعیت من', callback_data: 'my_status' }],
           ...(isAdmin(userId) ? [[{ text: '⚙️ پنل ادمین', callback_data: 'admin_panel' }]] : [])
         ]

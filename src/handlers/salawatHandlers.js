@@ -26,6 +26,7 @@ function showSalawatCounter(bot, chatId, messageId, campaignId, userId, db) {
         inline_keyboard: [
           [{ text: '🌟 صلوات فرستادم', callback_data: `salawat_send_${campaignId}` }],
           [{ text: '📊 رتبه‌بندی', callback_data: `salawat_rank_${campaignId}` }],
+          [{ text: '🔄 تغییر کمپین', callback_data: 'change_campaign' }],
           [{ text: '🔙 بازگشت', callback_data: 'back_to_main' }]
         ]
       }
